@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FocusFlow – Time Management</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f14;
+    --bg2: #13161e;
+    --bg3: #1a1e28;
+    --card: #1e2230;
+    --border: rgba(255,255,255,0.07);
+    --accent: #6ee7b7;
+    --accent2: #a78bfa;
+    --accent3: #f59e0b;
+    --text: #e8eaf0;
+    --muted: #8a8fa8;
+    --danger: #f87171;
+    --success: #34d399;
+    --info: #60a5fa;
+    --font: 'DM Sans', sans-serif;
+    --serif: 'DM Serif Display', serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+  a{color:var(--accent);text-decoration:none;}
+  input,select,textarea{font-family:var(--font);background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:10px;padding:10px 14px;font-size:14px;outline:none;transition:.2s;}
+  input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(110,231,183,0.12);}
+  button{font-family:var(--font);cursor:pointer;border:none;transition:.15s;}
+  .hidden{display:none!important;}
+
+  /* ── AUTH ── */
+  #auth-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--bg);position:relative;overflow:hidden;}
+  #auth-screen::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 60% 30%,rgba(110,231,183,0.08) 0%,transparent 70%),radial-gradient(ellipse 50% 50% at 20% 80%,rgba(167,139,250,0.08) 0%,transparent 70%);pointer-events:none;}
+  .auth-card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:40px 36px;width:380px;position:relative;z-index:1;}
+  .auth-logo{font-family:var(--serif);font-size:28px;color:var(--accent);margin-bottom:4px;}
+  .auth-sub{color:var(--muted);font-size:13px;margin-bottom:28px;}
+  .auth-tabs{display:flex;gap:0;margin-bottom:24px;background:var(--bg3);border-radius:10px;padding:3px;}
+  .auth-tab{flex:1;padding:8px;text-align:center;font-size:13px;font-weight:500;border-radius:8px;cursor:pointer;color:var(--muted);transition:.2s;}
+  .auth-tab.active{background:var(--card);color:var(--text);}
+  .auth-field{margin-bottom:14px;}
+  .auth-field label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px;font-weight:500;}
+  .auth-field input{width:100%;}
+  .btn-primary{width:100%;padding:11px;border-radius:10px;background:var(--accent);color:#0d0f14;font-weight:600;font-size:14px;margin-top:8px;}
+  .btn-primary:hover{filter:brightness(1.1);}
+  .btn-google{width:100%;padding:10px;border-radius:10px;background:var(--bg3);border:1px solid var(--border);color:var(--text);font-size:14px;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:10px;}
+  .btn-google:hover{border-color:var(--accent);}
+  .auth-divider{text-align:center;color:var(--muted);font-size:12px;margin:12px 0;position:relative;}
+  .auth-divider::before,.auth-divider::after{content:'';position:absolute;top:50%;width:42%;height:1px;background:var(--border);}
+  .auth-divider::before{left:0;} .auth-divider::after{right:0;}
+  .auth-err{color:var(--danger);font-size:12px;margin-top:8px;text-align:center;}
+
+  /* ── LAYOUT ── */
+  #app{display:flex;min-height:100vh;}
+  #sidebar{width:220px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:20px 12px;flex-shrink:0;}
+  .sidebar-logo{font-family:var(--serif);font-size:22px;color:var(--accent);padding:8px 12px;margin-bottom:20px;}
+  .nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;cursor:pointer;font-size:14px;font-weight:500;color:var(--muted);transition:.15s;margin-bottom:2px;}
+  .nav-item:hover{background:var(--bg3);color:var(--text);}
+  .nav-item.active{background:rgba(110,231,183,0.1);color:var(--accent);}
+  .nav-icon{width:18px;height:18px;opacity:.7;}
+  .nav-item.active .nav-icon{opacity:1;}
+  .sidebar-sep{height:1px;background:var(--border);margin:12px 0;}
+  .sidebar-bottom{margin-top:auto;}
+  .user-chip{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;background:var(--bg3);}
+  .avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:#0d0f14;flex-shrink:0;}
+  .user-name{font-size:13px;font-weight:500;}
+  .user-email{font-size:11px;color:var(--muted);}
+
+  #main{flex:1;overflow-y:auto;}
+  .page{display:none;padding:28px 32px;max-width:960px;}
+  .page.active{display:block;}
+  .page-title{font-family:var(--serif);font-size:26px;margin-bottom:4px;}
+  .page-sub{color:var(--muted);font-size:13px;margin-bottom:24px;}
+
+  /* ── DASHBOARD ── */
+  .stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px;}
+  .stat-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;}
+  .stat-label{font-size:11px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;}
+  .stat-val{font-size:26px;font-weight:600;}
+  .stat-val.green{color:var(--success);}
+  .stat-val.amber{color:var(--accent3);}
+  .stat-val.purple{color:var(--accent2);}
+  .stat-val.blue{color:var(--info);}
+
+  .section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+  .section-title{font-size:15px;font-weight:600;}
+  .badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;}
+  .badge-green{background:rgba(52,211,153,0.15);color:var(--success);}
+  .badge-amber{background:rgba(245,158,11,0.15);color:var(--accent3);}
+  .badge-red{background:rgba(248,113,113,0.15);color:var(--danger);}
+  .badge-purple{background:rgba(167,139,250,0.15);color:var(--accent2);}
+  .badge-blue{background:rgba(96,165,250,0.15);color:var(--info);}
+
+  /* Focus suggestion */
+  .focus-box{background:linear-gradient(135deg,rgba(110,231,183,0.1),rgba(167,139,250,0.08));border:1px solid rgba(110,231,183,0.2);border-radius:16px;padding:20px 24px;margin-bottom:24px;}
+  .focus-tag{font-size:11px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;}
+  .focus-title{font-family:var(--serif);font-size:20px;margin-bottom:6px;}
+  .focus-desc{font-size:13px;color:var(--muted);line-height:1.6;}
+  .focus-tasks{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;}
+  .focus-chip{padding:5px 12px;border-radius:20px;font-size:12px;font-weight:500;background:var(--bg3);border:1px solid var(--border);color:var(--text);}
+  .focus-chip.hot{border-color:rgba(248,113,113,0.4);background:rgba(248,113,113,0.08);color:var(--danger);}
+
+  /* Task list */
+  .task-table{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
+  .task-thead{display:grid;grid-template-columns:28px 40px 1fr 130px 120px 100px;gap:0;padding:10px 14px;border-bottom:1px solid var(--border);font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;}
+  .task-row{display:grid;grid-template-columns:28px 40px 1fr 130px 120px 100px;gap:0;padding:12px 14px;border-bottom:1px solid var(--border);align-items:center;font-size:13px;transition:.15s;}
+  .task-row:last-child{border-bottom:none;}
+  .task-row:hover{background:var(--bg3);}
+  .task-id{color:var(--muted);font-size:12px;}
+  .task-name{font-weight:500;}
+  .task-name.done{text-decoration:line-through;color:var(--muted);}
+  .task-date{color:var(--muted);font-size:12px;}
+  .task-deadline{font-size:12px;}
+  .task-cb{width:16px;height:16px;border-radius:4px;border:1.5px solid var(--border);cursor:pointer;appearance:none;flex-shrink:0;background:transparent;transition:.2s;}
+  .task-cb:checked{background:var(--accent);border-color:var(--accent);}
+
+  .add-task-row{display:flex;gap:10px;margin-top:16px;}
+  .add-task-row input{flex:1;}
+  .add-task-row select{width:130px;}
+  .btn-sm{padding:9px 16px;border-radius:9px;background:var(--accent);color:#0d0f14;font-weight:600;font-size:13px;}
+  .btn-sm:hover{filter:brightness(1.1);}
+  .btn-outline{padding:9px 16px;border-radius:9px;background:transparent;border:1px solid var(--border);color:var(--text);font-size:13px;}
+  .btn-outline:hover{border-color:var(--accent);color:var(--accent);}
+
+  /* ── DAILY TRACKER ── */
+  .tracker-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:20px;}
+  .day-cell{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center;cursor:pointer;transition:.2s;}
+  .day-cell:hover{border-color:var(--accent);}
+  .day-cell.today{border-color:var(--accent);background:rgba(110,231,183,0.07);}
+  .day-cell.completed{background:rgba(52,211,153,0.1);border-color:rgba(52,211,153,0.3);}
+  .day-label{font-size:10px;color:var(--muted);margin-bottom:4px;}
+  .day-num{font-size:16px;font-weight:600;}
+  .day-score{font-size:10px;color:var(--muted);margin-top:4px;}
+  .progress-bar{height:6px;border-radius:3px;background:var(--bg3);overflow:hidden;margin-top:8px;}
+  .progress-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:.4s;}
+  .habit-list{display:flex;flex-direction:column;gap:10px;}
+  .habit-item{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 18px;display:flex;align-items:center;gap:14px;}
+  .habit-check{width:20px;height:20px;border-radius:50%;border:2px solid var(--border);cursor:pointer;appearance:none;transition:.2s;flex-shrink:0;}
+  .habit-check:checked{background:var(--accent);border-color:var(--accent);}
+  .habit-info{flex:1;}
+  .habit-name{font-size:14px;font-weight:500;}
+  .habit-streak{font-size:12px;color:var(--muted);margin-top:2px;}
+  .habit-time{font-size:12px;color:var(--accent);}
+
+  /* ── FRIENDS/CHAT ── */
+  .friends-layout{display:grid;grid-template-columns:240px 1fr;gap:16px;height:calc(100vh - 160px);}
+  .friends-list{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow-y:auto;}
+  .friends-search{padding:12px;border-bottom:1px solid var(--border);}
+  .friends-search input{width:100%;}
+  .friend-item{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;transition:.15s;border-bottom:1px solid var(--border);}
+  .friend-item:last-child{border-bottom:none;}
+  .friend-item:hover,.friend-item.active{background:var(--bg3);}
+  .friend-status{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+  .online{background:var(--success);}
+  .offline{background:var(--muted);}
+  .friend-info{flex:1;min-width:0;}
+  .friend-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .friend-last{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .friend-badge{background:var(--accent);color:#0d0f14;font-size:10px;font-weight:700;border-radius:50%;width:16px;height:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .chat-panel{background:var(--card);border:1px solid var(--border);border-radius:14px;display:flex;flex-direction:column;}
+  .chat-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
+  .chat-messages{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;}
+  .msg{max-width:70%;padding:10px 14px;border-radius:14px;font-size:13px;line-height:1.5;}
+  .msg-in{background:var(--bg3);align-self:flex-start;border-bottom-left-radius:4px;}
+  .msg-out{background:rgba(110,231,183,0.15);align-self:flex-end;border-bottom-right-radius:4px;color:var(--accent);}
+  .msg-time{font-size:10px;color:var(--muted);margin-top:3px;}
+  .chat-input-row{padding:12px 14px;border-top:1px solid var(--border);display:flex;gap:10px;}
+  .chat-input-row input{flex:1;}
+  .btn-send{padding:9px 18px;border-radius:10px;background:var(--accent);color:#0d0f14;font-weight:600;font-size:13px;}
+  .btn-send:hover{filter:brightness(1.1);}
+  .chat-empty{display:flex;align-items:center;justify-content:center;flex:1;color:var(--muted);font-size:14px;}
+
+  /* ── ANALYTICS ── */
+  .chart-wrap{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;}
+  .chart-title{font-size:14px;font-weight:600;margin-bottom:16px;}
+  .bar-chart{display:flex;align-items:flex-end;gap:8px;height:160px;}
+  .bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;}
+  .bar{width:100%;border-radius:6px 6px 0 0;transition:.4s;min-height:4px;}
+  .bar-label{font-size:11px;color:var(--muted);}
+  .bar-val{font-size:11px;font-weight:600;}
+  .donut-wrap{display:flex;align-items:center;gap:24px;}
+  .donut-legend{display:flex;flex-direction:column;gap:10px;}
+  .legend-item{display:flex;align-items:center;gap:8px;font-size:13px;}
+  .legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+
+  /* ── SETTINGS ── */
+  .settings-section{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px 24px;margin-bottom:16px;}
+  .settings-title{font-size:14px;font-weight:600;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border);}
+  .setting-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);}
+  .setting-row:last-child{border-bottom:none;}
+  .setting-label{font-size:13px;}
+  .setting-sub{font-size:12px;color:var(--muted);margin-top:2px;}
+  .toggle{width:40px;height:22px;border-radius:11px;background:var(--bg3);border:1px solid var(--border);cursor:pointer;position:relative;transition:.2s;flex-shrink:0;}
+  .toggle.on{background:var(--accent);border-color:var(--accent);}
+  .toggle::after{content:'';position:absolute;width:16px;height:16px;border-radius:50%;background:var(--text);top:2px;left:2px;transition:.2s;}
+  .toggle.on::after{left:20px;background:#0d0f14;}
+
+  /* ── NOTIFICATION ── */
+  #toast{position:fixed;top:20px;right:20px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 18px;font-size:13px;z-index:9999;transform:translateY(-80px);opacity:0;transition:.3s;}
+  #toast.show{transform:translateY(0);opacity:1;}
+
+  /* ── MOBILE ── */
+  @media(max-width:700px){
+    #sidebar{display:none;}
+    .stat-row{grid-template-columns:1fr 1fr;}
+    .task-thead,.task-row{grid-template-columns:24px 36px 1fr 80px;}
+    .task-thead .col-date,.task-thead .col-proj,.task-row .col-date,.task-row .col-proj{display:none;}
+    .friends-layout{grid-template-columns:1fr;}
+    .page{padding:16px;}
+  }
+</style>
+</head>
+<body>
+
+<!-- AUTH -->
+<div id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-logo">FocusFlow</div>
+    <div class="auth-sub">Manage your day. Master your time.</div>
+    <div class="auth-tabs">
+      <div class="auth-tab active" onclick="switchAuthTab('login')">Sign In</div>
+      <div class="auth-tab" onclick="switchAuthTab('signup')">Sign Up</div>
+    </div>
+    <div id="login-form">
+      <div class="auth-field"><label>Email</label><input type="email" id="l-email" placeholder="you@email.com"></div>
+      <div class="auth-field"><label>Password</label><input type="password" id="l-pass" placeholder="••••••••"></div>
+      <button class="btn-primary" onclick="doLogin()">Sign in</button>
+      <div class="auth-divider">or</div>
+      <button class="btn-google" onclick="googleLogin()">
+        <svg width="16" height="16" viewBox="0 0 24 24"><path fill="#EA4335" d="M5.26620003,9.76452941 C6.19878754,6.93863203 8.85444915,4.90909091 12,4.90909091 C13.6545455,4.90909091 15.1527273,5.47236364 16.3418182,6.40363636 L19.6109091,3.13454545 C17.5891,1.18909091 15.0107143,0 12,0 C7.27575001,0 3.19862689,2.72015 1.23999993,6.65002695 L5.26620003,9.76452941 Z"/><path fill="#34A853" d="M16.0407269,18.0125889 C14.9509167,18.7163016 13.5660892,19.0909091 12,19.0909091 C8.86648613,19.0909091 6.21911939,17.076871 5.27698177,14.2678769 L1.23746264,17.3349879 C3.19279051,21.2936485 7.26500293,24 12,24 C14.9328362,24 17.7353462,22.9573905 19.834192,20.9995801 L16.0407269,18.0125889 Z"/><path fill="#4A90E2" d="M19.834192,20.9995801 C21.9955837,18.9520347 23.2730948,15.9580766 23.2730948,12 C23.2730948,11.2909091 23.1818182,10.5272727 23.0454546,9.81818182 L12,9.81818182 L12,14.4545455 L18.1818182,14.4545455 C17.8991909,15.9218182 17.0649164,17.2089091 15.864851,18.0161667 L19.834192,20.9995801 Z"/><path fill="#FBBC05" d="M5.27698177,14.2678769 C5.03832634,13.556323 4.90909091,12.7937589 4.90909091,12 C4.90909091,11.2182781 5.03443647,10.4668121 5.26620003,9.76452941 L1.23999993,6.65002695 C0.445589163,8.29801297 0,10.1026267 0,12 C0,13.8783834 0.450646443,15.6628484 1.23746264,17.3349879 L5.27698177,14.2678769 Z"/></svg>
+        Continue with Google
+      </button>
+      <div class="auth-err" id="l-err"></div>
+    </div>
+    <div id="signup-form" class="hidden">
+      <div class="auth-field"><label>Full Name</label><input type="text" id="s-name" placeholder="Your name"></div>
+      <div class="auth-field"><label>Email</label><input type="email" id="s-email" placeholder="you@email.com"></div>
+      <div class="auth-field"><label>Password</label><input type="password" id="s-pass" placeholder="Create password"></div>
+      <button class="btn-primary" onclick="doSignup()">Create Account</button>
+      <div class="auth-divider">or</div>
+      <button class="btn-google" onclick="googleLogin()">
+        <svg width="16" height="16" viewBox="0 0 24 24"><path fill="#EA4335" d="M5.26620003,9.76452941 C6.19878754,6.93863203 8.85444915,4.90909091 12,4.90909091 C13.6545455,4.90909091 15.1527273,5.47236364 16.3418182,6.40363636 L19.6109091,3.13454545 C17.5891,1.18909091 15.0107143,0 12,0 C7.27575001,0 3.19862689,2.72015 1.23999993,6.65002695 L5.26620003,9.76452941 Z"/><path fill="#34A853" d="M16.0407269,18.0125889 C14.9509167,18.7163016 13.5660892,19.0909091 12,19.0909091 C8.86648613,19.0909091 6.21911939,17.076871 5.27698177,14.2678769 L1.23746264,17.3349879 C3.19279051,21.2936485 7.26500293,24 12,24 C14.9328362,24 17.7353462,22.9573905 19.834192,20.9995801 L16.0407269,18.0125889 Z"/><path fill="#4A90E2" d="M19.834192,20.9995801 C21.9955837,18.9520347 23.2730948,15.9580766 23.2730948,12 C23.2730948,11.2909091 23.1818182,10.5272727 23.0454546,9.81818182 L12,9.81818182 L12,14.4545455 L18.1818182,14.4545455 C17.8991909,15.9218182 17.0649164,17.2089091 15.864851,18.0161667 L19.834192,20.9995801 Z"/><path fill="#FBBC05" d="M5.27698177,14.2678769 C5.03832634,13.556323 4.90909091,12.7937589 4.90909091,12 C4.90909091,11.2182781 5.03443647,10.4668121 5.26620003,9.76452941 L1.23999993,6.65002695 C0.445589163,8.29801297 0,10.1026267 0,12 C0,13.8783834 0.450646443,15.6628484 1.23746264,17.3349879 L5.27698177,14.2678769 Z"/></svg>
+        Sign up with Google
+      </button>
+      <div class="auth-err" id="s-err"></div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- APP -->
+<div id="app" class="hidden">
+  <!-- SIDEBAR -->
+  <div id="sidebar">
+    <div class="sidebar-logo">FocusFlow</div>
+    <div class="nav-item active" onclick="navigate('dashboard')">
+      <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Dashboard
+    </div>
+    <div class="nav-item" onclick="navigate('tasks')">
+      <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2M9 12l2 2 4-4"/></svg>
+      My Tasks
+    </div>
+    <div class="nav-item" onclick="navigate('daily')">
+      <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+      Daily Tracker
+    </div>
+    <div class="nav-item" onclick="navigate('analytics')">
+      <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      Analytics
+    </div>
+    <div class="sidebar-sep"></div>
+    <div class="nav-item" onclick="navigate('friends')">
+      <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+      Friends
+    </div>
+    <div class="nav-item" onclick="navigate('settings')">
+      <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      Settings
+    </div>
+    <div class="sidebar-bottom">
+      <div class="user-chip">
+        <div class="avatar" id="sidebarAvatar">?</div>
+        <div>
+          <div class="user-name" id="sidebarName">–</div>
+          <div class="user-email" id="sidebarEmail">–</div>
+        </div>
+      </div>
+      <button class="btn-outline" style="width:100%;margin-top:10px;" onclick="doLogout()">Sign out</button>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div id="main">
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div class="page-title">Good morning ☀️</div>
+      <div class="page-sub" id="dash-sub">Here's your focus summary for today.</div>
+      <div class="stat-row">
+        <div class="stat-card"><div class="stat-label">Tasks Today</div><div class="stat-val blue" id="stat-today">0</div></div>
+        <div class="stat-card"><div class="stat-label">Completed</div><div class="stat-val green" id="stat-done">0</div></div>
+        <div class="stat-card"><div class="stat-label">Overdue</div><div class="stat-val" style="color:var(--danger)" id="stat-over">0</div></div>
+        <div class="stat-card"><div class="stat-label">Focus Score</div><div class="stat-val amber" id="stat-score">–</div></div>
+      </div>
+
+      <!-- AI Focus Suggestion -->
+      <div class="focus-box">
+        <div class="focus-tag">AI Focus Suggestion</div>
+        <div class="focus-title" id="focus-title">Loading suggestion…</div>
+        <div class="focus-desc" id="focus-desc"></div>
+        <div class="focus-tasks" id="focus-chips"></div>
+      </div>
+
+      <!-- Recent tasks -->
+      <div class="section-head">
+        <span class="section-title">Today's Tasks</span>
+        <button class="btn-sm" onclick="navigate('tasks')">+ Add Task</button>
+      </div>
+      <div class="task-table">
+        <div class="task-thead">
+          <div></div><div>ID</div><div>Name</div><div>Deadline</div><div class="col-date">Added</div><div>Status</div>
+        </div>
+        <div id="dash-task-list"></div>
+      </div>
+    </div>
+
+    <!-- TASKS -->
+    <div class="page" id="page-tasks">
+      <div class="page-title">My Tasks</div>
+      <div class="page-sub">Manage all your tasks in one place.</div>
+      <div class="add-task-row">
+        <input type="text" id="new-task-name" placeholder="Add a new task…">
+        <input type="date" id="new-task-deadline" style="width:140px;">
+        <select id="new-task-priority">
+          <option value="High">High</option>
+          <option value="Medium" selected>Medium</option>
+          <option value="Low">Low</option>
+        </select>
+        <button class="btn-sm" onclick="addTask()">Add</button>
+      </div>
+      <div style="margin-top:16px;" class="task-table">
+        <div class="task-thead"><div></div><div>ID</div><div>Name</div><div>Deadline</div><div class="col-date">Added</div><div>Status</div></div>
+        <div id="full-task-list"></div>
+      </div>
+    </div>
+
+    <!-- DAILY TRACKER -->
+    <div class="page" id="page-daily">
+      <div class="page-title">Daily Tracker</div>
+      <div class="page-sub">Build habits and track your consistency.</div>
+      <div class="tracker-grid" id="tracker-grid"></div>
+      <div class="section-head" style="margin-top:8px;">
+        <span class="section-title">Today's Habits</span>
+        <div style="display:flex;gap:8px;">
+          <input type="text" id="new-habit" placeholder="New habit…" style="width:200px;">
+          <button class="btn-sm" onclick="addHabit()">Add</button>
+        </div>
+      </div>
+      <div class="habit-list" id="habit-list"></div>
+    </div>
+
+    <!-- ANALYTICS -->
+    <div class="page" id="page-analytics">
+      <div class="page-title">Analytics</div>
+      <div class="page-sub">Track your productivity over time.</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+        <div class="chart-wrap" style="grid-column:1/-1;">
+          <div class="chart-title">Tasks Completed – Last 7 Days</div>
+          <div class="bar-chart" id="bar-chart"></div>
+        </div>
+        <div class="chart-wrap">
+          <div class="chart-title">Priority Breakdown</div>
+          <div class="donut-wrap">
+            <svg viewBox="0 0 120 120" width="120" height="120" id="donut-svg">
+              <circle cx="60" cy="60" r="45" fill="none" stroke="var(--bg3)" stroke-width="18"/>
+              <circle cx="60" cy="60" r="45" fill="none" id="d-high" stroke="#f87171" stroke-width="18" stroke-dasharray="0 283" stroke-linecap="round" transform="rotate(-90 60 60)"/>
+              <circle cx="60" cy="60" r="45" fill="none" id="d-med" stroke="#f59e0b" stroke-width="18" stroke-dasharray="0 283" stroke-linecap="round" transform="rotate(-90 60 60)"/>
+              <circle cx="60" cy="60" r="45" fill="none" id="d-low" stroke="#6ee7b7" stroke-width="18" stroke-dasharray="0 283" stroke-linecap="round" transform="rotate(-90 60 60)"/>
+            </svg>
+            <div class="donut-legend">
+              <div class="legend-item"><div class="legend-dot" style="background:var(--danger)"></div><span id="leg-high">High – 0</span></div>
+              <div class="legend-item"><div class="legend-dot" style="background:var(--accent3)"></div><span id="leg-med">Medium – 0</span></div>
+              <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div><span id="leg-low">Low – 0</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="chart-wrap">
+          <div class="chart-title">Habit Streak</div>
+          <div id="streak-list" style="display:flex;flex-direction:column;gap:10px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FRIENDS -->
+    <div class="page" id="page-friends">
+      <div class="page-title">Friends & Chat</div>
+      <div class="page-sub">Stay connected and accountable.</div>
+      <div class="friends-layout">
+        <div class="friends-list">
+          <div class="friends-search">
+            <input type="text" placeholder="Search friends…" oninput="filterFriends(this.value)">
+          </div>
+          <div id="friends-list-items"></div>
+          <div style="padding:12px;border-top:1px solid var(--border);">
+            <div style="display:flex;gap:8px;">
+              <input type="email" id="add-friend-email" placeholder="friend@email.com" style="flex:1;font-size:12px;">
+              <button class="btn-sm" style="padding:8px 12px;font-size:12px;" onclick="addFriend()">Add</button>
+            </div>
+          </div>
+        </div>
+        <div class="chat-panel">
+          <div class="chat-header" id="chat-header">
+            <div class="avatar" id="chat-avatar" style="width:28px;height:28px;font-size:11px;">–</div>
+            <div>
+              <div style="font-size:14px;font-weight:600;" id="chat-name">Select a friend</div>
+              <div style="font-size:11px;color:var(--muted);" id="chat-status">–</div>
+            </div>
+          </div>
+          <div class="chat-messages" id="chat-messages">
+            <div class="chat-empty">Select a conversation to start chatting</div>
+          </div>
+          <div class="chat-input-row" id="chat-input-row">
+            <input type="text" id="chat-input" placeholder="Type a message…" onkeydown="if(event.key==='Enter')sendMsg()">
+            <button class="btn-send" onclick="sendMsg()">Send</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="page" id="page-settings">
+      <div class="page-title">Settings</div>
+      <div class="page-sub">Customize your FocusFlow experience.</div>
+      <div class="settings-section">
+        <div class="settings-title">Account</div>
+        <div class="setting-row">
+          <div><div class="setting-label">Display Name</div></div>
+          <input type="text" id="set-name" style="width:200px;">
+        </div>
+        <div class="setting-row">
+          <div><div class="setting-label">Email</div></div>
+          <span style="font-size:13px;color:var(--muted);" id="set-email-disp">–</span>
+        </div>
+        <div style="margin-top:14px;"><button class="btn-sm" onclick="saveSettings()">Save Changes</button></div>
+      </div>
+      <div class="settings-section">
+        <div class="settings-title">Notifications</div>
+        <div class="setting-row">
+          <div><div class="setting-label">Task reminders</div><div class="setting-sub">Get reminded about upcoming deadlines</div></div>
+          <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+        </div>
+        <div class="setting-row">
+          <div><div class="setting-label">Habit nudges</div><div class="setting-sub">Daily habit check-in reminder</div></div>
+          <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+        </div>
+        <div class="setting-row">
+          <div><div class="setting-label">Friend messages</div><div class="setting-sub">Notify when friends message you</div></div>
+          <div class="toggle" onclick="this.classList.toggle('on')"></div>
+        </div>
+      </div>
+      <div class="settings-section">
+        <div class="settings-title">Focus AI</div>
+        <div class="setting-row">
+          <div><div class="setting-label">AI suggestions</div><div class="setting-sub">Get smart focus recommendations daily</div></div>
+          <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ── STATE ──
+let currentUser = null;
+let tasks = [];
+let habits = [];
+let friends = [];
+let messages = {};
+let activeFriend = null;
+let taskIdCounter = 1;
+
+// ── AUTH ──
+function switchAuthTab(tab) {
+  document.querySelectorAll('.auth-tab').forEach((t,i)=>{t.classList.toggle('active', (i===0&&tab==='login')||(i===1&&tab==='signup'));});
+  document.getElementById('login-form').classList.toggle('hidden', tab!=='login');
+  document.getElementById('signup-form').classList.toggle('hidden', tab!=='signup');
+}
+
+function doLogin() {
+  const email = document.getElementById('l-email').value.trim();
+  const pass = document.getElementById('l-pass').value;
+  if (!email || !pass) { document.getElementById('l-err').textContent = 'Please fill all fields.'; return; }
+  const stored = JSON.parse(localStorage.getItem('ff_users')||'{}');
+  if (!stored[email] || stored[email].password !== pass) { document.getElementById('l-err').textContent = 'Invalid credentials.'; return; }
+  loginSuccess(stored[email]);
+}
+
+function doSignup() {
+  const name = document.getElementById('s-name').value.trim();
+  const email = document.getElementById('s-email').value.trim();
+  const pass = document.getElementById('s-pass').value;
+  if (!name||!email||!pass) { document.getElementById('s-err').textContent = 'Please fill all fields.'; return; }
+  if (pass.length < 6) { document.getElementById('s-err').textContent = 'Password min 6 characters.'; return; }
+  const stored = JSON.parse(localStorage.getItem('ff_users')||'{}');
+  if (stored[email]) { document.getElementById('s-err').textContent = 'Email already registered.'; return; }
+  stored[email] = { name, email, password: pass };
+  localStorage.setItem('ff_users', JSON.stringify(stored));
+  loginSuccess(stored[email]);
+}
+
+function googleLogin() {
+  // Simulate Google login
+  const user = { name: 'Demo User', email: 'demo@gmail.com' };
+  const stored = JSON.parse(localStorage.getItem('ff_users')||'{}');
+  stored[user.email] = { ...user, password: '__google__' };
+  localStorage.setItem('ff_users', JSON.stringify(stored));
+  loginSuccess(user);
+}
+
+function loginSuccess(user) {
+  currentUser = user;
+  localStorage.setItem('ff_session', JSON.stringify(user));
+  loadUserData();
+  document.getElementById('auth-screen').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+  initApp();
+  toast('Welcome back, ' + user.name.split(' ')[0] + '!');
+}
+
+function doLogout() {
+  saveUserData();
+  localStorage.removeItem('ff_session');
+  currentUser = null;
+  document.getElementById('app').classList.add('hidden');
+  document.getElementById('auth-screen').classList.remove('hidden');
+}
+
+// ── DATA PERSISTENCE ──
+function loadUserData() {
+  const key = 'ff_data_' + currentUser.email;
+  const d = JSON.parse(localStorage.getItem(key) || '{}');
+  tasks = d.tasks || getDefaultTasks();
+  habits = d.habits || getDefaultHabits();
+  friends = d.friends || getDefaultFriends();
+  messages = d.messages || getDefaultMessages();
+  taskIdCounter = d.taskIdCounter || tasks.length + 1;
+}
+
+function saveUserData() {
+  if (!currentUser) return;
+  const key = 'ff_data_' + currentUser.email;
+  localStorage.setItem(key, JSON.stringify({ tasks, habits, friends, messages, taskIdCounter }));
+}
+
+function getDefaultTasks() {
+  const today = new Date().toISOString().split('T')[0];
+  const deadline = new Date(); deadline.setDate(deadline.getDate()+7);
+  const dl = deadline.toISOString().split('T')[0];
+  return [
+    { id:1, name:'wake up', added:today, deadline:dl, status:'Pending', priority:'High', done:false },
+    { id:2, name:'Study Physics', added:today, deadline:dl, status:'Pending', priority:'High', done:false },
+    { id:3, name:'Complete homework', added:today, deadline:dl, status:'Pending', priority:'Medium', done:false },
+    { id:4, name:'DPP practice', added:today, deadline:dl, status:'Pending', priority:'Medium', done:false },
+  ];
+}
+
+function getDefaultHabits() {
+  return [
+    { id:1, name:'Wake up at 6 AM', streak:3, done:false, time:'06:00' },
+    { id:2, name:'30 min study session', streak:7, done:false, time:'09:00' },
+    { id:3, name:'Exercise', streak:1, done:false, time:'18:00' },
+    { id:4, name:'Read for 20 mins', streak:5, done:false, time:'21:00' },
+  ];
+}
+
+function getDefaultFriends() {
+  return [
+    { id:1, name:'Arjun Sharma', email:'arjun@example.com', online:true, unread:2 },
+    { id:2, name:'Priya Singh', email:'priya@example.com', online:false, unread:0 },
+    { id:3, name:'Rahul Kumar', email:'rahul@example.com', online:true, unread:0 },
+  ];
+}
+
+function getDefaultMessages() {
+  return {
+    1: [
+      { from:'friend', text:'Hey! How is your physics revision going?', time:'10:30 AM' },
+      { from:'friend', text:'Did you finish the DPP?', time:'10:31 AM' },
+    ],
+    2: [
+      { from:'me', text:'Hey Priya! Can you share the notes?', time:'Yesterday' },
+      { from:'friend', text:'Sure! Will send tonight.', time:'Yesterday' },
+    ],
+    3: []
+  };
+}
+
+// ── INIT ──
+function initApp() {
+  const u = currentUser;
+  document.getElementById('sidebarName').textContent = u.name;
+  document.getElementById('sidebarEmail').textContent = u.email;
+  document.getElementById('sidebarAvatar').textContent = u.name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+  document.getElementById('set-name').value = u.name;
+  document.getElementById('set-email-disp').textContent = u.email;
+  const hr = new Date().getHours();
+  const greet = hr<12 ? 'Good morning' : hr<17 ? 'Good afternoon' : 'Good evening';
+  document.querySelector('#page-dashboard .page-title').textContent = greet + ', ' + u.name.split(' ')[0] + '!';
+  // Set today's date as default deadline
+  document.getElementById('new-task-deadline').value = new Date().toISOString().split('T')[0];
+  renderAll();
+  setInterval(saveUserData, 30000);
+}
+
+function renderAll() {
+  renderDashboard();
+  renderTasks();
+  renderDaily();
+  renderAnalytics();
+  renderFriends();
+}
+
+// ── DASHBOARD ──
+function renderDashboard() {
+  const today = new Date().toISOString().split('T')[0];
+  const todayTasks = tasks;
+  const done = tasks.filter(t=>t.done).length;
+  const overdue = tasks.filter(t=>!t.done && t.deadline < today).length;
+  const total = tasks.length;
+  const score = total ? Math.round((done/total)*100) : 0;
+  document.getElementById('stat-today').textContent = total;
+  document.getElementById('stat-done').textContent = done;
+  document.getElementById('stat-over').textContent = overdue;
+  document.getElementById('stat-score').textContent = score + '%';
+
+  // AI Focus Suggestion logic
+  const pending = tasks.filter(t=>!t.done);
+  const highPri = pending.filter(t=>t.priority==='High');
+  let focusTitle = '', focusDesc = '', chips = [];
+
+  if (highPri.length > 0) {
+    focusTitle = 'You need to focus on High Priority tasks!';
+    focusDesc = `You have ${highPri.length} high-priority task${highPri.length>1?'s':''} pending. These require your immediate attention. Clear these first before moving to medium or low priority work. Time-block at least 2 hours for focused work today.`;
+    chips = highPri.map(t=>({label:t.name,hot:true}));
+  } else if (pending.length > 0) {
+    focusTitle = 'Good progress! Keep the momentum going.';
+    focusDesc = `No urgent tasks right now! You have ${pending.length} task${pending.length>1?'s':''} remaining. Focus on completing them to maintain a clean slate. Try the Pomodoro technique: 25 min work, 5 min break.`;
+    chips = pending.slice(0,3).map(t=>({label:t.name,hot:false}));
+  } else if (total > 0) {
+    focusTitle = 'Outstanding! All tasks completed.';
+    focusDesc = 'You have completed all your tasks. Use the extra time to review your notes, plan tomorrow\'s tasks, or take a well-deserved break. Consistency is the key to success!';
+    chips = [{label:'Plan tomorrow',hot:false},{label:'Review notes',hot:false}];
+  } else {
+    focusTitle = 'Start your day by adding tasks!';
+    focusDesc = 'You have no tasks yet. Add your first task and begin tracking your progress. Breaking big goals into small daily tasks is the most effective way to achieve them.';
+    chips = [];
+  }
+
+  const habitsDone = habits.filter(h=>h.done).length;
+  if (habitsDone < habits.length && habits.length > 0) {
+    focusDesc += ` Also, you still have ${habits.length-habitsDone} habit${habits.length-habitsDone>1?'s':''} to check off today.`;
+  }
+
+  document.getElementById('focus-title').textContent = focusTitle;
+  document.getElementById('focus-desc').textContent = focusDesc;
+  const fc = document.getElementById('focus-chips');
+  fc.innerHTML = chips.map(c=>`<div class="focus-chip${c.hot?' hot':''}">${c.label}</div>`).join('');
+
+  // Recent 4 tasks
+  renderTaskList('dash-task-list', tasks.slice(0,4));
+}
+
+function renderTaskList(containerId, list) {
+  const el = document.getElementById(containerId);
+  if (!list.length) { el.innerHTML = '<div style="padding:18px;text-align:center;color:var(--muted);font-size:13px;">No tasks yet.</div>'; return; }
+  el.innerHTML = list.map(t=>{
+    const pBadge = t.priority==='High'?'badge-red':t.priority==='Medium'?'badge-amber':'badge-green';
+    const today = new Date().toISOString().split('T')[0];
+    const overdue = !t.done && t.deadline < today;
+    return `<div class="task-row">
+      <div><input type="checkbox" class="task-cb" ${t.done?'checked':''} onchange="toggleTask(${t.id})"></div>
+      <div class="task-id">${t.id}</div>
+      <div class="task-name${t.done?' done':''}">${t.name}</div>
+      <div class="task-deadline"><span class="badge ${overdue&&!t.done?'badge-red':pBadge}">${t.deadline||'—'}</span></div>
+      <div class="task-date col-date" style="color:var(--muted);font-size:12px;">${t.added}</div>
+      <div><span class="badge ${t.done?'badge-green':overdue?'badge-red':'badge-blue'}">${t.done?'Done':overdue?'Overdue':t.status}</span></div>
+    </div>`;
+  }).join('');
+}
+
+// ── TASKS ──
+function addTask() {
+  const name = document.getElementById('new-task-name').value.trim();
+  if (!name) { toast('Please enter a task name'); return; }
+  const deadline = document.getElementById('new-task-deadline').value;
+  const priority = document.getElementById('new-task-priority').value;
+  const today = new Date().toISOString().split('T')[0];
+  tasks.push({ id: taskIdCounter++, name, added: today, deadline, status:'Pending', priority, done:false });
+  document.getElementById('new-task-name').value = '';
+  renderAll();
+  toast('Task added!');
+}
+
+function toggleTask(id) {
+  const t = tasks.find(t=>t.id===id);
+  if (t) { t.done = !t.done; t.status = t.done ? 'Done' : 'Pending'; }
+  renderAll();
+  saveUserData();
+}
+
+function renderTasks() {
+  renderTaskList('full-task-list', tasks);
+}
+
+// ── DAILY TRACKER ──
+function renderDaily() {
+  // Calendar row - current week
+  const now = new Date();
+  const dayOfWeek = now.getDay();
+  const grid = document.getElementById('tracker-grid');
+  const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  let html = '';
+  for (let i=0;i<7;i++) {
+    const d = new Date(now);
+    d.setDate(now.getDate() - dayOfWeek + i);
+    const isToday = i === dayOfWeek;
+    const habitsDone = Math.round(Math.random()*habits.length);
+    const score = habits.length ? Math.round((habitsDone/habits.length)*100) : 0;
+    const completed = i < dayOfWeek && score > 60;
+    html += `<div class="day-cell${isToday?' today':''}${completed?' completed':''}">
+      <div class="day-label">${days[i]}</div>
+      <div class="day-num">${d.getDate()}</div>
+      <div class="progress-bar"><div class="progress-fill" style="width:${isToday?(habits.filter(h=>h.done).length/(habits.length||1)*100):completed?score:0}%"></div></div>
+      <div class="day-score">${isToday?habits.filter(h=>h.done).length+'/'+habits.length:completed?score+'%':'–'}</div>
+    </div>`;
+  }
+  grid.innerHTML = html;
+
+  // Habits
+  const hl = document.getElementById('habit-list');
+  if (!habits.length) { hl.innerHTML='<div style="color:var(--muted);font-size:13px;padding:16px;">No habits yet. Add your first habit above.</div>'; return; }
+  hl.innerHTML = habits.map(h=>`
+    <div class="habit-item">
+      <input type="checkbox" class="habit-check" ${h.done?'checked':''} onchange="toggleHabit(${h.id})">
+      <div class="habit-info">
+        <div class="habit-name" style="${h.done?'text-decoration:line-through;color:var(--muted)':''}">${h.name}</div>
+        <div class="habit-streak">🔥 ${h.streak} day streak</div>
+      </div>
+      <div class="habit-time">${h.time}</div>
+      <button onclick="removeHabit(${h.id})" style="background:none;color:var(--muted);font-size:18px;line-height:1;padding:0 4px;">×</button>
+    </div>
+  `).join('');
+}
+
+function addHabit() {
+  const name = document.getElementById('new-habit').value.trim();
+  if (!name) return;
+  habits.push({ id: Date.now(), name, streak:0, done:false, time:'09:00' });
+  document.getElementById('new-habit').value = '';
+  renderAll(); saveUserData(); toast('Habit added!');
+}
+
+function toggleHabit(id) {
+  const h = habits.find(h=>h.id===id);
+  if (h) { h.done=!h.done; if(h.done) h.streak++; else h.streak=Math.max(0,h.streak-1); }
+  renderAll(); saveUserData();
+}
+
+function removeHabit(id) {
+  habits = habits.filter(h=>h.id!==id);
+  renderAll(); saveUserData();
+}
+
+// ── ANALYTICS ──
+function renderAnalytics() {
+  // Bar chart - last 7 days mock data
+  const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const counts = [3,5,2,7,4,6,tasks.filter(t=>t.done).length];
+  const max = Math.max(...counts, 1);
+  document.getElementById('bar-chart').innerHTML = days.map((d,i)=>`
+    <div class="bar-col">
+      <div class="bar-val" style="color:var(--accent)">${counts[i]}</div>
+      <div class="bar" style="height:${Math.round((counts[i]/max)*120)}px;background:${i===6?'linear-gradient(180deg,var(--accent),var(--accent2))':'var(--bg3)'}"></div>
+      <div class="bar-label">${d}</div>
+    </div>
+  `).join('');
+
+  // Donut
+  const high = tasks.filter(t=>t.priority==='High').length;
+  const med = tasks.filter(t=>t.priority==='Medium').length;
+  const low = tasks.filter(t=>t.priority==='Low').length;
+  const total = tasks.length || 1;
+  const circ = 283;
+  const hArc = Math.round((high/total)*circ);
+  const mArc = Math.round((med/total)*circ);
+  const lArc = Math.round((low/total)*circ);
+  document.getElementById('d-high').setAttribute('stroke-dasharray',`${hArc} ${circ}`);
+  document.getElementById('d-med').setAttribute('stroke-dasharray',`${mArc} ${circ}`);
+  document.getElementById('d-med').setAttribute('stroke-dashoffset',`${-hArc}`);
+  document.getElementById('d-low').setAttribute('stroke-dasharray',`${lArc} ${circ}`);
+  document.getElementById('d-low').setAttribute('stroke-dashoffset',`${-(hArc+mArc)}`);
+  document.getElementById('leg-high').textContent = `High – ${high}`;
+  document.getElementById('leg-med').textContent = `Medium – ${med}`;
+  document.getElementById('leg-low').textContent = `Low – ${low}`;
+
+  // Streak list
+  document.getElementById('streak-list').innerHTML = habits.map(h=>`
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div style="flex:1;font-size:13px;">${h.name}</div>
+      <div style="font-size:12px;color:var(--accent3)">🔥 ${h.streak}d</div>
+      <div style="width:80px;"><div class="progress-bar"><div class="progress-fill" style="width:${Math.min(h.streak*10,100)}%"></div></div></div>
+    </div>
+  `).join('') || '<div style="color:var(--muted);font-size:13px;">Add habits to see streaks.</div>';
+}
+
+// ── FRIENDS & CHAT ──
+function renderFriends(filter='') {
+  const list = friends.filter(f=>!filter || f.name.toLowerCase().includes(filter.toLowerCase()));
+  const el = document.getElementById('friends-list-items');
+  if (!list.length) { el.innerHTML='<div style="padding:16px;color:var(--muted);font-size:13px;">No friends found.</div>'; return; }
+  el.innerHTML = list.map(f=>`
+    <div class="friend-item${activeFriend===f.id?' active':''}" onclick="openChat(${f.id})">
+      <div class="avatar" style="width:30px;height:30px;font-size:11px;">${f.name.split(' ').map(w=>w[0]).join('').slice(0,2)}</div>
+      <div class="friend-status ${f.online?'online':'offline'}"></div>
+      <div class="friend-info">
+        <div class="friend-name">${f.name}</div>
+        <div class="friend-last">${(messages[f.id]||[]).slice(-1)[0]?.text||'No messages yet'}</div>
+      </div>
+      ${f.unread?`<div class="friend-badge">${f.unread}</div>`:''}
+    </div>
+  `).join('');
+}
+
+function filterFriends(val) { renderFriends(val); }
+
+function openChat(id) {
+  activeFriend = id;
+  const f = friends.find(f=>f.id===id);
+  if (f) {
+    f.unread = 0;
+    document.getElementById('chat-avatar').textContent = f.name.split(' ').map(w=>w[0]).join('').slice(0,2);
+    document.getElementById('chat-name').textContent = f.name;
+    document.getElementById('chat-status').textContent = f.online ? '● Online' : '○ Offline';
+  }
+  const msgs = messages[id] || [];
+  const el = document.getElementById('chat-messages');
+  el.innerHTML = msgs.length ? msgs.map(m=>`
+    <div>
+      <div class="msg ${m.from==='me'?'msg-out':'msg-in'}">${m.text}</div>
+      <div class="msg-time" style="text-align:${m.from==='me'?'right':'left'}">${m.time}</div>
+    </div>
+  `).join('') : '<div class="chat-empty">Start the conversation!</div>';
+  el.scrollTop = el.scrollHeight;
+  renderFriends();
+}
+
+function sendMsg() {
+  const input = document.getElementById('chat-input');
+  const text = input.value.trim();
+  if (!text || !activeFriend) return;
+  if (!messages[activeFriend]) messages[activeFriend] = [];
+  const now = new Date();
+  messages[activeFriend].push({ from:'me', text, time: now.getHours()+':'+String(now.getMinutes()).padStart(2,'0') });
+  input.value = '';
+  openChat(activeFriend);
+  // Simulate reply
+  const f = friends.find(f=>f.id===activeFriend);
+  if (f && f.online) {
+    setTimeout(()=>{
+      const replies = ["That's great!", "Keep it up!", "You're doing amazing!", "Focus is key!", "Let's go! 💪", "Nice one!"];
+      messages[activeFriend].push({ from:'friend', text: replies[Math.floor(Math.random()*replies.length)], time: new Date().getHours()+':'+String(new Date().getMinutes()).padStart(2,'0') });
+      openChat(activeFriend);
+      saveUserData();
+    }, 1200 + Math.random()*800);
+  }
+  saveUserData();
+}
+
+function addFriend() {
+  const email = document.getElementById('add-friend-email').value.trim();
+  if (!email) return;
+  const name = email.split('@')[0].replace(/[^a-zA-Z]/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+  if (friends.find(f=>f.email===email)) { toast('Already added!'); return; }
+  friends.push({ id: Date.now(), name, email, online:false, unread:0 });
+  document.getElementById('add-friend-email').value = '';
+  renderFriends(); saveUserData(); toast('Friend added!');
+}
+
+// ── NAVIGATE ──
+function navigate(page) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const idx = ['dashboard','tasks','daily','analytics','friends','settings'].indexOf(page);
+  if (idx>=0) document.querySelectorAll('.nav-item')[idx]?.classList.add('active');
+  if (page==='dashboard') renderDashboard();
+  if (page==='analytics') renderAnalytics();
+}
+
+// ── SETTINGS ──
+function saveSettings() {
+  const name = document.getElementById('set-name').value.trim();
+  if (!name) return;
+  currentUser.name = name;
+  const stored = JSON.parse(localStorage.getItem('ff_users')||'{}');
+  if (stored[currentUser.email]) { stored[currentUser.email].name = name; localStorage.setItem('ff_users', JSON.stringify(stored)); }
+  localStorage.setItem('ff_session', JSON.stringify(currentUser));
+  document.getElementById('sidebarName').textContent = name;
+  document.getElementById('sidebarAvatar').textContent = name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+  toast('Settings saved!');
+}
+
+// ── TOAST ──
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2500);
+}
+
+// ── BOOT ──
+window.addEventListener('load', ()=>{
+  const session = JSON.parse(localStorage.getItem('ff_session')||'null');
+  if (session) {
+    currentUser = session;
+    loadUserData();
+    document.getElementById('auth-screen').classList.add('hidden');
+    document.getElementById('app').classList.remove('hidden');
+    initApp();
+  }
+});
+</script>
+</body>
+</html>
